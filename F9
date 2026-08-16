@@ -1,0 +1,639 @@
+-- LocalScript (StarterPlayer -> StarterPlayerScripts) - PART 1
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local localPlayer = Players.LocalPlayer
+local playerGui = localPlayer:WaitForChild("PlayerGui")
+
+--// GUI Root
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AntiFreakHub"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = playerGui
+
+--// Helper: Smooth Draggable UI
+local function makeDraggable(guiObject)
+	local dragging = false
+	local dragInput, dragStart, startPos
+
+	guiObject.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = guiObject.Position
+
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+
+	guiObject.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then
+			local delta = input.Position - dragStart
+			guiObject.Position = UDim2.new(
+				startPos.X.Scale,
+				startPos.X.Offset + delta.X,
+				startPos.Y.Scale,
+				startPos.Y.Offset + delta.Y
+			)
+		end
+	end)
+end
+
+--// Floating Toggle Button
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Name = "OpenButton"
+toggleBtn.Size = UDim2.new(0, 54, 0, 54)
+toggleBtn.Position = UDim2.new(0, 30, 0.5, -27)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(22, 24, 32)
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.Text = "⚡"
+toggleBtn.TextSize = 22
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.AutoButtonColor = false
+toggleBtn.Parent = screenGui
+makeDraggable(toggleBtn)
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(1, 0)
+toggleCorner.Parent = toggleBtn
+
+local toggleStroke = Instance.new("UIStroke")
+toggleStroke.Color = Color3.fromRGB(60, 65, 90)
+toggleStroke.Thickness = 2
+toggleStroke.Parent = toggleBtn
+
+--// Main Frame
+local mainFrame = Instance.new("CanvasGroup")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 540, 0, 380)
+mainFrame.Position = UDim2.new(0.5, -270, 0.5, -190)
+mainFrame.BackgroundColor3 = Color3.fromRGB(16, 18, 24)
+mainFrame.BorderSizePixel = 0
+mainFrame.GroupTransparency = 1
+mainFrame.Visible = false
+mainFrame.Parent = screenGui
+makeDraggable(mainFrame)
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 14)
+mainCorner.Parent = mainFrame
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(40, 44, 58)
+mainStroke.Thickness = 1.5
+mainStroke.Parent = mainFrame
+
+--// Top Bar
+local topBar = Instance.new("Frame")
+topBar.Name = "TopBar"
+topBar.Size = UDim2.new(1, 0, 0, 48)
+topBar.BackgroundColor3 = Color3.fromRGB(22, 24, 32)
+topBar.BorderSizePixel = 0
+topBar.Parent = mainFrame
+
+local topBarCorner = Instance.new("UICorner")
+topBarCorner.CornerRadius = UDim.new(0, 14)
+topBarCorner.Parent = topBar
+
+local topBarFix = Instance.new("Frame")
+topBarFix.Size = UDim2.new(1, 0, 0, 10)
+topBarFix.Position = UDim2.new(0, 0, 1, -10)
+topBarFix.BackgroundColor3 = Color3.fromRGB(22, 24, 32)
+topBarFix.BorderSizePixel = 0
+topBarFix.Parent = topBar
+
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, -60, 1, 0)
+title.Position = UDim2.new(0, 18, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "ANTIFREAK HUB"
+title.TextColor3 = Color3.fromRGB(245, 245, 255)
+title.TextSize = 15
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = topBar
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Name = "CloseBtn"
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -40, 0.5, -15)
+closeBtn.BackgroundColor3 = Color3.fromRGB(32, 35, 46)
+closeBtn.TextColor3 = Color3.fromRGB(180, 185, 205)
+closeBtn.Text = "✕"
+closeBtn.TextSize = 13
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.AutoButtonColor = false
+closeBtn.Parent = topBar
+
+local closeBtnCorner = Instance.new("UICorner")
+closeBtnCorner.CornerRadius = UDim.new(0, 8)
+closeBtnCorner.Parent = closeBtn
+
+--// Sidebar
+local sidebar = Instance.new("Frame")
+sidebar.Name = "Sidebar"
+sidebar.Size = UDim2.new(0, 135, 1, -48)
+sidebar.Position = UDim2.new(0, 0, 0, 48)
+sidebar.BackgroundColor3 = Color3.fromRGB(19, 21, 28)
+sidebar.BorderSizePixel = 0
+sidebar.Parent = mainFrame
+
+local tabListLayout = Instance.new("UIListLayout")
+tabListLayout.Padding = UDim.new(0, 6)
+tabListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+tabListLayout.Parent = sidebar
+
+local sidebarPadding = Instance.new("UIPadding")
+sidebarPadding.PaddingTop = UDim.new(0, 12)
+sidebarPadding.Parent = sidebar
+
+--// Content Area
+local contentArea = Instance.new("Frame")
+contentArea.Name = "ContentArea"
+contentArea.Size = UDim2.new(1, -135, 1, -48)
+contentArea.Position = UDim2.new(0, 135, 0, 48)
+contentArea.BackgroundTransparency = 1
+contentArea.Parent = mainFrame
+
+--// Tabs Setup
+local tabs = {}
+local tabButtons = {}
+local tabNames = {"Visuals", "Player", "Game", "Misc", "Settings"}
+
+local function switchTab(selectedName)
+	for name, page in pairs(tabs) do
+		local btn = tabButtons[name]
+		if name == selectedName then
+			page.Visible = true
+			TweenService:Create(btn, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+				BackgroundColor3 = Color3.fromRGB(70, 95, 235),
+				TextColor3 = Color3.fromRGB(255, 255, 255)
+			}):Play()
+		else
+			page.Visible = false
+			TweenService:Create(btn, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+				BackgroundColor3 = Color3.fromRGB(26, 28, 38),
+				TextColor3 = Color3.fromRGB(150, 155, 175)
+			}):Play()
+		end
+	end
+end
+
+for _, tabName in ipairs(tabNames) do
+	local tBtn = Instance.new("TextButton")
+	tBtn.Name = tabName .. "Btn"
+	tBtn.Size = UDim2.new(0, 115, 0, 34)
+	tBtn.BackgroundColor3 = Color3.fromRGB(26, 28, 38)
+	tBtn.TextColor3 = Color3.fromRGB(150, 155, 175)
+	tBtn.Text = tabName
+	tBtn.TextSize = 13
+	tBtn.Font = Enum.Font.GothamMedium
+	tBtn.AutoButtonColor = false
+	tBtn.Parent = sidebar
+
+	local tCorner = Instance.new("UICorner")
+	tCorner.CornerRadius = UDim.new(0, 8)
+	tCorner.Parent = tBtn
+
+	tabButtons[tabName] = tBtn
+
+	local page = Instance.new("ScrollingFrame")
+	page.Name = tabName .. "Page"
+	page.Size = UDim2.new(1, 0, 1, 0)
+	page.BackgroundTransparency = 1
+	page.BorderSizePixel = 0
+	page.ScrollBarThickness = 3
+	page.ScrollBarImageColor3 = Color3.fromRGB(55, 60, 80)
+	page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	page.CanvasSize = UDim2.new(0, 0, 0, 0)
+	page.Visible = false
+	page.Parent = contentArea
+
+	local pageLayout = Instance.new("UIListLayout")
+	pageLayout.Padding = UDim.new(0, 10)
+	pageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	pageLayout.Parent = page
+
+	local pagePadding = Instance.new("UIPadding")
+	pagePadding.PaddingTop = UDim.new(0, 14)
+	pagePadding.PaddingLeft = UDim.new(0, 14)
+	pagePadding.PaddingRight = UDim.new(0, 14)
+	pagePadding.PaddingBottom = UDim.new(0, 14)
+	pagePadding.Parent = page
+
+	tabs[tabName] = page
+
+	tBtn.MouseButton1Click:Connect(function()
+		switchTab(tabName)
+	end)
+end
+
+switchTab("Visuals")
+-- LocalScript (StarterPlayer -> StarterPlayerScripts) - PART 2 (Continuation)
+
+--// ==================== VISUALS (ESP & PALETTE) ====================
+local espEnabled = false
+local currentESPColor = Color3.fromRGB(255, 60, 60)
+local highlights = {}
+
+local function applyHighlight(plr)
+	if plr == localPlayer then return end
+	if not espEnabled then return end
+
+	local char = plr.Character
+	if char and not highlights[plr] then
+		local hl = Instance.new("Highlight")
+		hl.Name = "ESPHighlight"
+		hl.FillColor = currentESPColor
+		hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+		hl.FillTransparency = 0.5
+		hl.OutlineTransparency = 0
+		hl.Adornee = char
+		hl.Parent = char
+		highlights[plr] = hl
+	end
+end
+
+local function removeHighlight(plr)
+	if highlights[plr] then
+		highlights[plr]:Destroy()
+		highlights[plr] = nil
+	end
+end
+
+local function refreshAllHighlights()
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if espEnabled then
+			if highlights[plr] then
+				highlights[plr].FillColor = currentESPColor
+			else
+				applyHighlight(plr)
+			end
+		else
+			removeHighlight(plr)
+		end
+	end
+end
+
+Players.PlayerAdded:Connect(function(plr)
+	plr.CharacterAdded:Connect(function()
+		task.wait(0.5)
+		if espEnabled then applyHighlight(plr) end
+	end)
+end)
+
+Players.PlayerRemoving:Connect(function(plr)
+	removeHighlight(plr)
+end)
+
+for _, plr in ipairs(Players:GetPlayers()) do
+	if plr ~= localPlayer then
+		plr.CharacterAdded:Connect(function()
+			task.wait(0.5)
+			if espEnabled then applyHighlight(plr) end
+		end)
+	end
+end
+
+local visualsPage = tabs["Visuals"]
+
+local espAccordion = Instance.new("Frame")
+espAccordion.Name = "ESPAccordion"
+espAccordion.Size = UDim2.new(1, 0, 0, 50)
+espAccordion.BackgroundColor3 = Color3.fromRGB(24, 26, 36)
+espAccordion.ClipsDescendants = true
+espAccordion.Parent = visualsPage
+
+local accCorner = Instance.new("UICorner")
+accCorner.CornerRadius = UDim.new(0, 10)
+accCorner.Parent = espAccordion
+
+local accStroke = Instance.new("UIStroke")
+accStroke.Color = Color3.fromRGB(38, 42, 56)
+accStroke.Thickness = 1
+accStroke.Parent = espAccordion
+
+local headerRow = Instance.new("Frame")
+headerRow.Size = UDim2.new(1, 0, 0, 50)
+headerRow.BackgroundTransparency = 1
+headerRow.Parent = espAccordion
+
+local espTitle = Instance.new("TextLabel")
+espTitle.Size = UDim2.new(0.4, 0, 1, 0)
+espTitle.Position = UDim2.new(0, 14, 0, 0)
+espTitle.BackgroundTransparency = 1
+espTitle.Text = "Player ESP"
+espTitle.TextColor3 = Color3.fromRGB(240, 240, 255)
+espTitle.TextSize = 14
+espTitle.Font = Enum.Font.GothamBold
+espTitle.TextXAlignment = Enum.TextXAlignment.Left
+espTitle.Parent = headerRow
+
+local arrowBtn = Instance.new("TextButton")
+arrowBtn.Size = UDim2.new(0, 32, 0, 32)
+arrowBtn.Position = UDim2.new(1, -125, 0.5, -16)
+arrowBtn.BackgroundColor3 = Color3.fromRGB(32, 35, 48)
+arrowBtn.TextColor3 = Color3.fromRGB(180, 185, 210)
+arrowBtn.Text = "▼"
+arrowBtn.TextSize = 11
+arrowBtn.Font = Enum.Font.GothamBold
+arrowBtn.AutoButtonColor = false
+arrowBtn.Parent = headerRow
+
+local arrowCorner = Instance.new("UICorner")
+arrowCorner.CornerRadius = UDim.new(0, 8)
+arrowCorner.Parent = arrowBtn
+
+local toggleSwitch = Instance.new("TextButton")
+toggleSwitch.Size = UDim2.new(0, 75, 0, 32)
+toggleSwitch.Position = UDim2.new(1, -85, 0.5, -16)
+toggleSwitch.BackgroundColor3 = Color3.fromRGB(42, 45, 58)
+toggleSwitch.TextColor3 = Color3.fromRGB(180, 185, 200)
+toggleSwitch.Text = "OFF"
+toggleSwitch.TextSize = 11
+toggleSwitch.Font = Enum.Font.GothamBold
+toggleSwitch.AutoButtonColor = false
+toggleSwitch.Parent = headerRow
+
+local switchCorner = Instance.new("UICorner")
+switchCorner.CornerRadius = UDim.new(0, 8)
+switchCorner.Parent = toggleSwitch
+
+toggleSwitch.MouseButton1Click:Connect(function()
+	espEnabled = not espEnabled
+	if espEnabled then
+		TweenService:Create(toggleSwitch, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			BackgroundColor3 = Color3.fromRGB(45, 185, 100),
+			TextColor3 = Color3.fromRGB(255, 255, 255)
+		}):Play()
+		toggleSwitch.Text = "ON"
+	else
+		TweenService:Create(toggleSwitch, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			BackgroundColor3 = Color3.fromRGB(42, 45, 58),
+			TextColor3 = Color3.fromRGB(180, 185, 200)
+		}):Play()
+		toggleSwitch.Text = "OFF"
+	end
+	refreshAllHighlights()
+end)
+
+local settingsContainer = Instance.new("Frame")
+settingsContainer.Size = UDim2.new(1, -28, 0, 160)
+settingsContainer.Position = UDim2.new(0, 14, 0, 52)
+settingsContainer.BackgroundTransparency = 1
+settingsContainer.Parent = espAccordion
+
+local previewCard = Instance.new("Frame")
+previewCard.Size = UDim2.new(1, 0, 0, 24)
+previewCard.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
+previewCard.Parent = settingsContainer
+
+local previewCorner = Instance.new("UICorner")
+previewCorner.CornerRadius = UDim.new(0, 6)
+previewCorner.Parent = previewCard
+
+local previewBox = Instance.new("Frame")
+previewBox.Size = UDim2.new(0, 16, 0, 16)
+previewBox.Position = UDim2.new(0, 6, 0.5, -8)
+previewBox.BackgroundColor3 = currentESPColor
+previewBox.Parent = previewCard
+
+local boxCorner = Instance.new("UICorner")
+boxCorner.CornerRadius = UDim.new(0, 4)
+boxCorner.Parent = previewBox
+
+local previewLabel = Instance.new("TextLabel")
+previewLabel.Size = UDim2.new(1, -32, 1, 0)
+previewLabel.Position = UDim2.new(0, 28, 0, 0)
+previewLabel.BackgroundTransparency = 1
+previewLabel.Text = "Color Spectrum Picker"
+previewLabel.TextColor3 = Color3.fromRGB(160, 165, 185)
+previewLabel.TextSize = 11
+previewLabel.Font = Enum.Font.GothamMedium
+previewLabel.TextXAlignment = Enum.TextXAlignment.Left
+previewLabel.Parent = previewCard
+
+local paletteFrame = Instance.new("ImageLabel")
+paletteFrame.Name = "ColorPalette"
+paletteFrame.Size = UDim2.new(1, 0, 0, 95)
+paletteFrame.Position = UDim2.new(0, 0, 0, 32)
+paletteFrame.Image = "rbxassetid://4155801252"
+paletteFrame.ScaleType = Enum.ScaleType.Stretch
+paletteFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
+paletteFrame.BorderSizePixel = 0
+paletteFrame.Parent = settingsContainer
+
+local palCorner = Instance.new("UICorner")
+palCorner.CornerRadius = UDim.new(0, 8)
+palCorner.Parent = paletteFrame
+
+local pickerCursor = Instance.new("Frame")
+pickerCursor.Size = UDim2.new(0, 12, 0, 12)
+pickerCursor.AnchorPoint = Vector2.new(0.5, 0.5)
+pickerCursor.Position = UDim2.new(0.1, 0, 0.5, 0)
+pickerCursor.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+pickerCursor.Parent = paletteFrame
+
+local curCorner = Instance.new("UICorner")
+curCorner.CornerRadius = UDim.new(1, 0)
+curCorner.Parent = pickerCursor
+
+local curStroke = Instance.new("UIStroke")
+curStroke.Color = Color3.fromRGB(20, 20, 20)
+curStroke.Thickness = 1.5
+curStroke.Parent = pickerCursor
+
+local pickingColor = false
+
+local function updatePalette(input)
+	local x = math.clamp((input.Position.X - paletteFrame.AbsolutePosition.X) / paletteFrame.AbsoluteSize.X, 0, 1)
+	local y = math.clamp((input.Position.Y - paletteFrame.AbsolutePosition.Y) / paletteFrame.AbsoluteSize.Y, 0, 1)
+	pickerCursor.Position = UDim2.new(x, 0, y, 0)
+	currentESPColor = Color3.fromHSV(x, 1 - y, 1)
+	previewBox.BackgroundColor3 = currentESPColor
+	refreshAllHighlights()
+end
+
+paletteFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		pickingColor = true
+		updatePalette(input)
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		pickingColor = false
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if pickingColor and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		updatePalette(input)
+	end
+end)
+
+local isExpanded = false
+arrowBtn.MouseButton1Click:Connect(function()
+	isExpanded = not isExpanded
+	local targetSize = isExpanded and UDim2.new(1, 0, 0, 220) or UDim2.new(1, 0, 0, 50)
+	arrowBtn.Text = isExpanded and "▲" or "▼"
+	TweenService:Create(espAccordion, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+		Size = targetSize
+	}):Play()
+end)
+
+--// ==================== MISC (FLING & ANTI-FLING) ====================
+local miscPage = tabs["Misc"]
+local touchFlingEnabled = false
+local antiFlingEnabled = false
+
+local function createToggleCard(parent, titleText, onToggle)
+	local card = Instance.new("Frame")
+	card.Size = UDim2.new(1, 0, 0, 50)
+	card.BackgroundColor3 = Color3.fromRGB(24, 26, 36)
+	card.Parent = parent
+
+	local cCorner = Instance.new("UICorner")
+	cCorner.CornerRadius = UDim.new(0, 10)
+	cCorner.Parent = card
+
+	local cStroke = Instance.new("UIStroke")
+	cStroke.Color = Color3.fromRGB(38, 42, 56)
+	cStroke.Thickness = 1
+	cStroke.Parent = card
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(0.6, 0, 1, 0)
+	label.Position = UDim2.new(0, 14, 0, 0)
+	label.BackgroundTransparency = 1
+	label.Text = titleText
+	label.TextColor3 = Color3.fromRGB(240, 240, 255)
+	label.TextSize = 14
+	label.Font = Enum.Font.GothamBold
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = card
+
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, 75, 0, 32)
+	btn.Position = UDim2.new(1, -85, 0.5, -16)
+	btn.BackgroundColor3 = Color3.fromRGB(42, 45, 58)
+	btn.TextColor3 = Color3.fromRGB(180, 185, 200)
+	btn.Text = "OFF"
+	btn.TextSize = 11
+	btn.Font = Enum.Font.GothamBold
+	btn.AutoButtonColor = false
+	btn.Parent = card
+
+	local bCorner = Instance.new("UICorner")
+	bCorner.CornerRadius = UDim.new(0, 8)
+	bCorner.Parent = btn
+
+	local state = false
+	btn.MouseButton1Click:Connect(function()
+		state = not state
+		if state then
+			TweenService:Create(btn, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+				BackgroundColor3 = Color3.fromRGB(45, 185, 100),
+				TextColor3 = Color3.fromRGB(255, 255, 255)
+			}):Play()
+			btn.Text = "ON"
+		else
+			TweenService:Create(btn, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+				BackgroundColor3 = Color3.fromRGB(42, 45, 58),
+				TextColor3 = Color3.fromRGB(180, 185, 200)
+			}):Play()
+			btn.Text = "OFF"
+		end
+		onToggle(state)
+	end)
+end
+
+createToggleCard(miscPage, "Touch Fling", function(enabled)
+	touchFlingEnabled = enabled
+end)
+
+createToggleCard(miscPage, "Anti Fling (Push Protection)", function(enabled)
+	antiFlingEnabled = enabled
+end)
+
+RunService.Stepped:Connect(function()
+	local myChar = localPlayer.Character
+	if not myChar then return end
+	local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+	if not myRoot then return end
+
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= localPlayer and plr.Character then
+			local targetRoot = plr.Character:FindFirstChild("HumanoidRootPart")
+			if targetRoot then
+				local dist = (myRoot.Position - targetRoot.Position).Magnitude
+				if touchFlingEnabled and dist <= 6.5 then
+					local flingDirection = (targetRoot.Position - myRoot.Position).Unit
+					if flingDirection.Magnitude == 0 or tostring(flingDirection.X) == "nan" then
+						flingDirection = Vector3.new(0, 1, 0)
+					end
+					targetRoot.AssemblyLinearVelocity = (flingDirection * 200) + Vector3.new(0, 100, 0)
+					targetRoot.AssemblyAngularVelocity = Vector3.new(100, 100, 100)
+				end
+
+				if antiFlingEnabled then
+					for _, part in ipairs(plr.Character:GetDescendants()) do
+						if part:IsA("BasePart") and part.CanCollide then
+							part.CanCollide = false
+						end
+					end
+					if dist <= 8 and targetRoot.AssemblyLinearVelocity.Magnitude > 60 then
+						targetRoot.AssemblyLinearVelocity = Vector3.zero
+						targetRoot.AssemblyAngularVelocity = Vector3.zero
+					end
+				end
+			end
+		end
+	end
+end)
+
+--// ==================== OPEN / CLOSE ANIMATIONS ====================
+local isMenuOpen = false
+
+local function toggleMenu()
+	isMenuOpen = not isMenuOpen
+	if isMenuOpen then
+		mainFrame.Visible = true
+		mainFrame.Size = UDim2.new(0, 480, 0, 330)
+		mainFrame.GroupTransparency = 1
+
+		TweenService:Create(mainFrame, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Size = UDim2.new(0, 540, 0, 380),
+			GroupTransparency = 0
+		}):Play()
+	else
+		local closeTween = TweenService:Create(mainFrame, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
+			Size = UDim2.new(0, 470, 0, 320),
+			GroupTransparency = 1
+		})
+		closeTween:Play()
+		closeTween.Completed:Connect(function()
+			if not isMenuOpen then
+				mainFrame.Visible = false
+			end
+		end)
+	end
+end
+
+toggleBtn.MouseButton1Click:Connect(toggleMenu)
+closeBtn.MouseButton1Click:Connect(toggleMenu)
